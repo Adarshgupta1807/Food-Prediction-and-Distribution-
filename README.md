@@ -253,7 +253,6 @@ project-root/
 - JWT-based authentication for more scalable session management
 - Real-time NGO notifications via Email/SMS (Nodemailer/Twilio)
 - Admin approval flow to verify new restaurant signups
-- Migrating from LLM-based prediction to a trained time-series/ML model (e.g., Random Forest, LSTM) once sufficient historical data is collected
 - Multi-city scalability for broader NGO coverage
 
 ---
@@ -262,8 +261,5 @@ project-root/
 
 **Adarsh Gupta**
 B.Tech CSE, Maharana Institute of Professional Studies
-- GitHub: [Adarshgupta1807](https://github.com/Adarshgupta1807)
-- LinkedIn: [adarsh-gupta-1b02b5303](https://linkedin.com/in/adarsh-gupta-1b02b5303/)
-- LeetCode: [Adarsh_Gupta1807](https://leetcode.com/u/Adarsh_Gupta1807/)
 
 > Built out of real volunteering experience with **Robin Hood Army** — turning a manual, reactive food-rescue process into a proactive, data-driven one.
