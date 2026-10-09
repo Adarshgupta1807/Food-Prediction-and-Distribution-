@@ -34,7 +34,7 @@ Restaurants often **overcook or undercook** food because they have no data-drive
 
 ## 💡 Solution Overview
 
-This system collects a restaurant's historical cooking/consumption data, uses the **Gemini AI API** to forecast the next day's demand, flags expected surplus, and **automatically alerts nearby NGOs** so pickups can be planned in advance instead of last-minute.
+This system collects a restaurant's historical cooking/consumption data, uses the **Gemini AI API** to forecast the next day's demand, flags expected surplus, and **automatically alerts NGOs volunteer** so pickups can be planned in advance instead of last-minute.
 
 ---
 
@@ -46,7 +46,6 @@ This system collects a restaurant's historical cooking/consumption data, uses th
 | 🤖 AI Demand Prediction | Gemini API analyzes the last 7 days of data to forecast tomorrow's demand |
 | ⚠️ Surplus Detection | System flags expected surplus based on a configurable threshold |
 | 🔔 NGO Notification | Nearby NGOs are alerted automatically when surplus is predicted |
-| 📈 Analytics Dashboard | Visual charts (Chart.js) comparing predicted vs. actual demand over time |
 | 🔐 Restaurant Authentication | Secure signup/login with hashed passwords |
 
 ---
@@ -59,7 +58,6 @@ This system collects a restaurant's historical cooking/consumption data, uses th
 | Backend | Node.js, Express.js |
 | Database | MongoDB (Mongoose ODM) |
 | AI / Forecasting | Gemini API (LLM-based prediction) |
-| Visualization | Chart.js |
 | Authentication | bcrypt (password hashing) |
 | API Testing | Postman |
 | Version Control | Git & GitHub |
@@ -250,9 +248,7 @@ project-root/
 
 ## 🚀 Future Scope
 
-- JWT-based authentication for more scalable session management
 - Real-time NGO notifications via Email/SMS (Nodemailer/Twilio)
-- Admin approval flow to verify new restaurant signups
 - Multi-city scalability for broader NGO coverage
 
 ---
