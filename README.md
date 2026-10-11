@@ -1,261 +1,444 @@
-# 🍽️ Food Surplus Prediction & NGO Notification System
-
-An AI-powered MERN stack application that predicts restaurant food demand, detects surplus, and automatically notifies nearby NGOs for pickup — reducing food waste and helping it reach people in need.
-
-> Inspired by real-world volunteering experience with **Robin Hood Army**, where restaurant food surplus is collected manually and distributed to the underprivileged. This project aims to make that process **proactive instead of reactive**.
-
+# 🍛 Food Prediction & Distribution System
+ 
+> Cook the right amount. Donate the rest. Waste nothing.
+ 
+A full-stack **MERN** application (React frontend + Node/Express backend) that helps restaurants **predict tomorrow's food demand using AI** and **donate surplus food to volunteers** through a simple, trackable donation workflow.
+ 
 ---
-
-## 📖 Table of Contents
-
+ 
+## 📌 Table of Contents
+ 
 - [Problem Statement](#-problem-statement)
-- [Solution Overview](#-solution-overview)
 - [Features](#-features)
 - [Tech Stack](#-tech-stack)
 - [System Architecture](#-system-architecture)
 - [Workflow](#-workflow)
-- [Database Schema](#-database-schema)
-- [API Endpoints](#-api-endpoints)
-- [AI / Prompt Engineering](#-ai--prompt-engineering)
-- [Installation & Setup](#-installation--setup)
-- [Environment Variables](#-environment-variables)
 - [Project Structure](#-project-structure)
-- [Future Scope](#-future-scope)
+- [Getting Started](#-getting-started)
+- [Authentication](#-authentication)
+- [API Reference](#-api-reference)
+- [Database Schema](#-database-schema)
+- [How the Prediction Works](#-how-the-prediction-works)
+- [Future Improvements](#-future-improvements)
 - [Author](#-author)
-
 ---
-
+ 
 ## 🎯 Problem Statement
-
-Restaurants often **overcook or undercook** food because they have no data-driven way to estimate next day's demand. This leads to:
-- Excess food waste when surplus isn't utilized in time
-- Missed opportunities for NGOs to collect and redistribute food to those in need
-- No early warning system — surplus is only discovered *after* the food is already wasted
-
-## 💡 Solution Overview
-
-This system collects a restaurant's historical cooking/consumption data, uses the **Gemini AI API** to forecast the next day's demand, flags expected surplus, and **automatically alerts NGOs volunteer** so pickups can be planned in advance instead of last-minute.
-
+ 
+Restaurants often cook more food than they can sell, and the extra food goes to waste while many people go hungry. Two problems exist here:
+ 
+1. **Over-cooking**: there is no data-driven way to decide how much to cook.
+2. **No easy donation channel**: surplus food has no quick path to people who need it.
+This project solves both. It predicts next-day consumption from past records, and it connects restaurants with volunteers who can pick up and deliver the leftover food.
+ 
 ---
-
+ 
 ## ✨ Features
-
-| Feature | Description |
-|---|---|
-| 📊 Daily Data Logging | Restaurants log how much food was cooked vs. consumed each day |
-| 🤖 AI Demand Prediction | Gemini API analyzes the last 7 days of data to forecast tomorrow's demand |
-| ⚠️ Surplus Detection | System flags expected surplus based on a configurable threshold |
-| 🔔 NGO Notification | Nearby NGOs are alerted automatically when surplus is predicted |
-| 🔐 Restaurant Authentication | Secure signup/login with hashed passwords |
-
+ 
+- 🖥️ **React frontend** for restaurants and volunteers to log food, view predictions and manage donations
+- 🔐 **Role-based authentication** for two roles: `restaurant` and `volunteer`
+- 🍽️ **Food record management**: log cooked, consumed and wasted quantities (CRUD + stats)
+- 🤖 **AI-powered prediction**: Google Gemini predicts tomorrow's consumption and recommended cooking quantity using recent records and the day of the week
+- 🤝 **Donation workflow**: restaurants post surplus food, volunteers accept it and update status (`accepted` → `picked_up` → `delivered`)
+- 🛡️ **Protected routes** with auth middleware and role restrictions
+- 🚪 **Token blacklist** to invalidate tokens
 ---
-
-## 🛠️ Tech Stack
-
+ 
+## 🧰 Tech Stack
+ 
 | Layer | Technology |
-|---|---|
-| Frontend | React.js |
-| Backend | Node.js, Express.js |
-| Database | MongoDB (Mongoose ODM) |
-| AI / Forecasting | Gemini API (LLM-based prediction) |
-| Authentication | bcrypt (password hashing) |
-| API Testing | Postman |
-| Version Control | Git & GitHub |
-
+|-------|-----------|
+| Frontend | React |
+| Runtime | Node.js |
+| Framework | Express.js |
+| Database | MongoDB + Mongoose |
+| AI | Google Gemini (`@google/genai`) |
+| Auth | JWT-based auth, middleware + role restriction |
+ 
 ---
-
+ 
 ## 🏗️ System Architecture
-
+ 
 ```mermaid
-flowchart TD
-    A[Restaurant User] -->|Enters daily data| B[React Frontend]
-    B -->|API Call - POST| C[Express Backend]
-    C --> D[(MongoDB Database)]
-    C -->|Last 7 days data| E[Gemini AI API]
-    E -->|JSON Prediction| C
-    C -->|Surplus detected?| F{Threshold Check}
-    F -->|Yes| G[NGO Notification Service]
-    F -->|No| H[Store & Display Only]
-    G --> I[Nearby NGO Alerted]
-    C -->|Dashboard Data| B
-    B -->|Charts & Insights| A
+flowchart LR
+    C["React Frontend<br/>(Client)"] --> R["Express Routes<br/>/api/auth · /api/food · /api/donations · prediction"]
+    R --> M["Middleware<br/>authMiddleware → restrictTo(role)"]
+    M --> CT["Controllers<br/>auth · food · donation · prediction"]
+    CT --> DB[("MongoDB<br/>User · FoodRecord · Donation · blacklistTokens")]
+    CT --> PS["Prediction Service"]
+    PS --> G["Google Gemini API"]
+    PS --> DB
 ```
-
+ 
+**Request lifecycle**
+ 
+1. The React app calls the API and sends the token in the `Authorization` header.
+2. `authMiddleware` verifies the token, and `restrictTo(...)` checks the user's role.
+3. The controller runs the business logic and talks to MongoDB.
+4. For predictions, the service fetches recent food records and asks Gemini for a structured JSON answer.
 ---
-
+ 
 ## 🔄 Workflow
-
-| Step | Action |
-|---|---|
-| 1 | Restaurant logs in and submits daily cooked/consumed data via React form |
-| 2 | Express backend validates and stores the data in MongoDB |
-| 3 | Backend fetches the last 7 days of records using a MongoDB aggregation query |
-| 4 | This data is sent to the Gemini API with a structured prompt |
-| 5 | Gemini returns a JSON prediction: `predictedDemand`, `recommendedCooking`, `expectedWaste` |
-| 6 | Backend validates the AI response (format + logical sanity checks) |
-| 7 | If expected surplus crosses the threshold, the NGO notification is triggered |
-| 8 | Dashboard updates with prediction charts and historical trends |
-
----
-
-## 🗄️ Database Schema
-
-### `restaurants`
-
-| Field | Type | Description |
-|---|---|---|
-| `_id` | ObjectId | Unique identifier |
-| `name` | String | Restaurant name |
-| `email` | String | Login email |
-| `password` | String | Hashed password (bcrypt) |
-| `location` | String | Address / area |
-
-### `dailyData`
-
-| Field | Type | Description |
-|---|---|---|
-| `_id` | ObjectId | Unique identifier |
-| `restaurantId` | ObjectId (ref) | Links to `restaurants` |
-| `date` | Date | Date of the record |
-| `cookedQty` | Number | Quantity cooked |
-| `consumedQty` | Number | Quantity actually consumed |
-| `wasteQty` | Number | Calculated leftover |
-
-### `predictions`
-
-| Field | Type | Description |
-|---|---|---|
-| `_id` | ObjectId | Unique identifier |
-| `restaurantId` | ObjectId (ref) | Links to `restaurants` |
-| `date` | Date | Date prediction is for |
-| `predictedDemand` | Number | AI-forecasted demand |
-| `recommendedCooking` | Number | Suggested quantity to cook |
-| `expectedWaste` | Number | Predicted surplus |
-
-### `ngos`
-
-| Field | Type | Description |
-|---|---|---|
-| `_id` | ObjectId | Unique identifier |
-| `name` | String | NGO name |
-| `location` | String | Operating area |
-| `contactInfo` | String | Email / phone for alerts |
-
-**Relationships:** MongoDB has no foreign keys like SQL — relations are maintained using `ObjectId` references (e.g., `dailyData.restaurantId` → `restaurants._id`), and an index on `{ restaurantId, date }` keeps the frequent "last 7 days" queries fast.
-
----
-
-## 🔌 API Endpoints
-
-| Method | Endpoint | Description |
-|---|---|---|
-| `POST` | `/api/auth/signup` | Register a new restaurant |
-| `POST` | `/api/auth/login` | Restaurant login |
-| `POST` | `/api/data` | Submit daily cooked/consumed data |
-| `GET` | `/api/data/:restaurantId` | Fetch historical data for a restaurant |
-| `GET` | `/api/predict/:restaurantId` | Get AI-generated demand prediction |
-| `GET` | `/api/predictions/:restaurantId` | Fetch past predictions for dashboard charts |
-| `POST` | `/api/notify` | Trigger NGO notification (internal, called when surplus detected) |
-
----
-
-## 🤖 AI / Prompt Engineering
-
-The system sends the last 7 days of restaurant data to Gemini with a tightly structured prompt that:
-1. Provides clear context (historical cooked vs. consumed data)
-2. Defines the exact task (predict tomorrow's demand)
-3. Locks the output format to JSON only — no free text
-
-**Example prompt:**
+ 
+### End-to-end flow
+ 
+```mermaid
+sequenceDiagram
+    participant R as Restaurant
+    participant API as Backend API
+    participant AI as Gemini
+    participant V as Volunteer
+ 
+    R->>API: Register / Login
+    R->>API: POST /api/food (daily cooked, consumed, waste)
+    R->>API: GET prediction
+    API->>AI: Last 3 records + day of week
+    AI-->>API: predictedConsumption, recommendedCooking
+    API-->>R: Tomorrow's cooking recommendation
+    R->>API: POST /api/donations (surplus food)
+    V->>API: GET /api/donations (see available food)
+    V->>API: PATCH /api/donations/:id/accept
+    V->>API: PATCH /api/donations/:id/status (picked_up)
+    V->>API: PATCH /api/donations/:id/status (delivered)
 ```
-You are a food demand forecasting assistant.
-Here is the last 7 days of data for a restaurant:
-Mon: Cooked 100, Consumed 90
-Tue: Cooked 120, Consumed 115
-...
-
-Predict tomorrow's demand, recommended cooking quantity, and expected surplus.
-Respond ONLY in this JSON format:
-{"predictedDemand": number, "recommendedCooking": number, "expectedWaste": number}
+ 
+### Donation status lifecycle
+ 
+```mermaid
+stateDiagram-v2
+    [*] --> available: Restaurant creates donation
+    available --> accepted: Volunteer accepts
+    accepted --> picked_up: Volunteer collects food
+    picked_up --> delivered: Food reaches the receiver
+    delivered --> [*]
 ```
-
-**Safeguards added:**
-- Response is validated for correct JSON structure before use
-- Illogical values (e.g., negative demand) trigger a fallback (last 3-day average)
-- Retry logic handles transient API failures gracefully
-
+ 
 ---
-
-## ⚙️ Installation & Setup
-
-```bash
-# Clone the repository
-git clone https://github.com/Adarshgupta1807/<repo-name>.git
-cd <repo-name>
-
-# Install backend dependencies
-cd backend
-npm install
-
-# Install frontend dependencies
-cd ../frontend
-npm install
-
-# Start backend server
-cd ../backend
-npm run dev
-
-# Start frontend
-cd ../frontend
-npm start
-```
-
----
-
-## 🔐 Environment Variables
-
-Create a `.env` file inside the `backend` folder:
-
-| Variable | Description |
-|---|---|
-| `MONGO_URI` | MongoDB connection string |
-| `GEMINI_API_KEY` | API key for Gemini |
-| `PORT` | Backend server port |
-
----
-
+ 
 ## 📁 Project Structure
-
+ 
 ```
-project-root/
-├── backend/
-│   ├── models/          # Mongoose schemas (Restaurant, DailyData, Prediction, NGO)
-│   ├── routes/          # Express route handlers
-│   ├── controllers/     # Business logic
-│   ├── utils/           # Gemini API helper, validation functions
-│   ├── .env
-│   └── server.js
-├── frontend/
-│   ├── src/
-│   │   ├── components/  # Reusable UI components
-│   │   ├── pages/       # Dashboard, Login, Signup
-│   │   └── App.js
-│   └── package.json
-└── README.md
+├── client/                      # React frontend
+│   ├── public/
+│   └── src/
+│       ├── components/
+│       ├── pages/
+│       ├── services/            # API calls to the backend
+│       └── App.jsx
+│
+└── server/                      # Node + Express backend
+    ├── controllers/
+    │   ├── authController.js
+    │   ├── donationController.js
+    │   ├── foodController.js
+    │   └── predictionController.js
+    ├── middlewares/
+    │   └── authMiddleware.js
+    ├── models/
+    │   ├── User.js
+    │   ├── FoodRecord.js
+    │   ├── Donation.js
+    │   └── BlacklistToken.js
+    ├── routes/
+    │   ├── authRoutes.js
+    │   ├── donationRoutes.js
+    │   ├── foodRoutes.js
+    │   └── predictionRoutes.js
+    ├── services/
+    │   └── predictionService.js
+    └── server.js
 ```
-
+ 
+> Adjust file and folder names to match your repo.
+ 
 ---
-
-## 🚀 Future Scope
-
-- Real-time NGO notifications via Email/SMS (Nodemailer/Twilio)
-- Multi-city scalability for broader NGO coverage
-
+ 
+## ⚙️ Getting Started
+ 
+### Prerequisites
+ 
+- Node.js v18+
+- MongoDB (local or Atlas)
+- Google Gemini API key
+### Installation
+ 
+```bash
+git clone https://github.com/Adarshgupta1807/<your-repo>.git
+cd <your-repo>
+```
+ 
+**Backend**
+ 
+```bash
+cd server
+npm install
+```
+ 
+**Frontend**
+ 
+```bash
+cd client
+npm install
+```
+ 
+### Environment variables
+ 
+**`server/.env`**
+ 
+```env
+PORT=5000
+MONGO_URI=your_mongodb_connection_string
+JWT_SECRET=your_secret_key
+GOOGLE_GENAI_API_KEY=your_gemini_api_key
+```
+ 
+**`client/.env`**
+ 
+```env
+VITE_API_URL=http://localhost:5000/api
+```
+ 
+### Run
+ 
+Start the backend and frontend in two separate terminals:
+ 
+```bash
+# Terminal 1: backend
+cd server
+npm start
+ 
+# Terminal 2: frontend
+cd client
+npm run dev
+```
+ 
+The frontend runs on `http://localhost:5173` and talks to the backend on `http://localhost:5000`.
+ 
+> If your frontend uses Create React App instead of Vite, use `npm start` and the `REACT_APP_API_URL` variable. Also make sure CORS is enabled on the backend for the frontend's URL.
+ 
 ---
-
+ 
+## 🔑 Authentication
+ 
+Protected routes need a token in the request header:
+ 
+```
+Authorization: Bearer <token>
+```
+ 
+Get the token from the login API. Invalidated tokens are stored in the `blacklistTokens` collection and rejected by the auth middleware.
+ 
+| Role | Can do |
+|------|--------|
+| `restaurant` | Manage food records, get predictions, create donations, view donations |
+| `volunteer` | View donations, accept donations, update donation status |
+ 
+---
+ 
+## 📡 API Reference
+ 
+### Auth: `/api/auth`
+ 
+| Method | Endpoint | Description | Access |
+|--------|----------|-------------|--------|
+| POST | `/register` | Register a new user | Public |
+| POST | `/login` | Login based on role | Public |
+ 
+### Food records: `/api/food`
+ 
+| Method | Endpoint | Description | Access |
+|--------|----------|-------------|--------|
+| POST | `/` | Add a food record | Restaurant |
+| GET | `/` | Get my food records | Restaurant |
+| GET | `/stats` | Get food statistics | Restaurant |
+| PUT | `/:id` | Update a food record | Restaurant |
+| DELETE | `/:id` | Delete a food record | Restaurant |
+ 
+### Donations: `/api/donations`
+ 
+| Method | Endpoint | Description | Access |
+|--------|----------|-------------|--------|
+| POST | `/` | Create a donation | Restaurant |
+| GET | `/` | List donations | Restaurant, Volunteer |
+| PATCH | `/:id/accept` | Accept a donation | Volunteer |
+| PATCH | `/:id/status` | Update donation status | Volunteer |
+ 
+### Prediction: `/api/predict`
+ 
+| Method | Endpoint | Description | Access |
+|--------|----------|-------------|--------|
+| GET | `/` | Predict tomorrow's consumption and cooking quantity | Restaurant |
+ 
+> Replace `/api/predict` with the path where you mounted `predictionRouter`.
+ 
+### 🧪 Sample requests
+ 
+**Register**: `POST /api/auth/register`
+ 
+```json
+{
+  "username": "Green Bites",
+  "email": "greenbites@example.com",
+  "password": "your_password",
+  "role": "restaurant"
+}
+```
+ 
+**Login**: `POST /api/auth/login`
+ 
+```json
+{
+  "email": "greenbites@example.com",
+  "password": "your_password"
+}
+```
+ 
+**Add food record**: `POST /api/food`
+ 
+```json
+{
+  "foodName": "Dal Rice",
+  "cookedQty": 100,
+  "consumedQty": 85,
+  "wasteQty": 15
+}
+```
+ 
+**Create donation**: `POST /api/donations`
+ 
+```json
+{
+  "foodName": "Dal Rice",
+  "quantity": 15,
+  "pickupTime": "2026-10-12T20:00:00.000Z"
+}
+```
+ 
+**Accept donation**: `PATCH /api/donations/:id/accept` (no body)
+ 
+**Update status**: `PATCH /api/donations/:id/status`
+ 
+```json
+{
+  "status": "picked_up"
+}
+```
+ 
+**Prediction response**: `GET /api/predict`
+ 
+```json
+{
+  "predictedConsumption": 92,
+  "recommendedCooking": 99,
+  "expectedWaste": 7,
+  "reasoning": "Consumption has been stable over the last 3 days, and tomorrow is a weekend, so a slightly higher quantity is recommended."
+}
+```
+ 
+---
+ 
+## 🗄️ Database Schema
+ 
+All schemas use `timestamps: true`, so `createdAt` and `updatedAt` are added automatically.
+ 
+```mermaid
+erDiagram
+    USER ||--o{ FOODRECORD : "restaurant logs"
+    USER ||--o{ DONATION : "restaurant creates"
+    USER ||--o{ DONATION : "volunteer accepts"
+ 
+    USER {
+        ObjectId _id
+        String username
+        String email
+        String password
+        String role
+    }
+    FOODRECORD {
+        ObjectId _id
+        ObjectId restaurantId
+        String foodName
+        Number cookedQty
+        Number consumedQty
+        Number wasteQty
+    }
+    DONATION {
+        ObjectId _id
+        ObjectId restaurantId
+        ObjectId ngoId
+        String foodName
+        Number quantity
+        String status
+        Date pickupTime
+    }
+    BLACKLISTTOKEN {
+        ObjectId _id
+        String token
+    }
+```
+ 
+### User
+ 
+| Field | Type | Notes |
+|-------|------|-------|
+| `username` | String | Required |
+| `email` | String | Required, unique |
+| `password` | String | Required (stored hashed) |
+| `role` | String | `volunteer` or `restaurant`, default `volunteer` |
+ 
+### FoodRecord
+ 
+| Field | Type | Notes |
+|-------|------|-------|
+| `restaurantId` | ObjectId → User | Required |
+| `foodName` | String | Required |
+| `cookedQty` | Number | Required |
+| `consumedQty` | Number | Required |
+| `wasteQty` | Number | Required |
+ 
+### Donation
+ 
+| Field | Type | Notes |
+|-------|------|-------|
+| `restaurantId` | ObjectId → User | Required, the donor restaurant |
+| `ngoId` | ObjectId → User | Default `null`, set when a volunteer accepts |
+| `foodName` | String | Required |
+| `quantity` | Number | Required |
+| `status` | String | `available`, `accepted`, `picked_up`, `delivered` (default `available`) |
+| `pickupTime` | Date | Optional |
+ 
+### BlacklistToken (`blacklistTokens`)
+ 
+| Field | Type | Notes |
+|-------|------|-------|
+| `token` | String | Required, invalidated tokens that must no longer be accepted |
+ 
+---
+ 
+## 🧠 How the Prediction Works
+ 
+1. Fetch the restaurant's **last 3 food records** from MongoDB.
+2. Attach the **day name** (Monday, Tuesday...) to each record, plus tomorrow's day.
+3. Send this history to **Gemini** with a strict JSON response schema.
+4. Gemini returns `predictedConsumption`, `recommendedCooking` and `reasoning`.
+5. The server calculates `expectedWaste = recommendedCooking - predictedConsumption` itself, so the AI's math is never trusted.
+If a restaurant has no records yet, the API returns zeros without calling Gemini.
+ 
+---
+ 
+## 🚀 Future Improvements
+ 
+- Include the same weekday from last week in the prediction
+- Add festival and weather signals
+- Live location tracking for volunteers
+- Notifications when a new donation is posted
+- Charts on the dashboard for waste and consumption trends
+---
+ 
 ## 👤 Author
-
+ 
 **Adarsh Gupta**
-B.Tech CSE, Maharana Institute of Professional Studies
-
-> Built out of real volunteering experience with **Robin Hood Army** — turning a manual, reactive food-rescue process into a proactive, data-driven one.
+ 
+- GitHub: [@Adarshgupta1807](https://github.com/Adarshgupta1807)
+- LinkedIn: [adarsh-gupta](https://www.linkedin.com/in/adarsh-gupta-1b02b5303/)
+ 
