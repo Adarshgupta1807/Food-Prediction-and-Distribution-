@@ -323,11 +323,10 @@ All schemas use `timestamps: true`, so `createdAt` and `updatedAt` are added aut
 
 ## 🧠 How the Prediction Works
 
-1. Fetch the restaurant's **last 3 food records** from MongoDB.
-2. Attach the **day name** (Monday, Tuesday...) to each record, plus tomorrow's day.
-3. Send this history to **Gemini** with a strict JSON response schema.
-4. Gemini returns `predictedConsumption`, `recommendedCooking` and `reasoning`.
-5. The server calculates `expectedWaste = recommendedCooking - predictedConsumption` itself, so the AI's math is never trusted.
+1. Fetch the restaurant's **last 7 food records** from MongoDB.
+2. Send this history to **Gemini** with a strict JSON response schema.
+3. Gemini returns `predictedConsumption`, `recommendedCooking` and `reasoning`.
+4. The server calculates `expectedWaste = recommendedCooking - predictedConsumption` itself, so the AI's math is never trusted.
 
 If a restaurant has no records yet, the API returns zeros without calling Gemini.
 
@@ -335,8 +334,6 @@ If a restaurant has no records yet, the API returns zeros without calling Gemini
 
 ## 🚀 Future Improvements
 
-- Include the same weekday from last week in the prediction
-- Add festival and weather signals
 - Live location tracking for volunteers
 - Notifications when a new donation is posted
 - Charts on the dashboard for waste and consumption trends
@@ -346,6 +343,3 @@ If a restaurant has no records yet, the API returns zeros without calling Gemini
 ## 👤 Author
 
 **Adarsh Gupta**
-
-- GitHub: [@Adarshgupta1807](https://github.com/Adarshgupta1807)
-- LinkedIn: [adarsh-gupta](https://www.linkedin.com/in/adarsh-gupta-1b02b5303/)
