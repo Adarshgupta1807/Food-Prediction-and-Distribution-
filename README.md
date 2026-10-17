@@ -169,22 +169,22 @@ Each frontend feature (`auth`, `donation`, `ngo`, `restaurant`) is self-containe
 ### Installation
 
 ```bash
-git clone https://github.com/Adarshgupta1807/<your-repo>.git
-cd <your-repo>
+git clone https://github.com/Adarshgupta1807/Food-Prediction-and-Distribution-.git
+cd Food-Prediction-and-Distribution-
 ```
 
 **Backend**
 
 ```bash
 cd Backend
-npm install
+npm run dev
 ```
 
 **Frontend**
 
 ```bash
 cd Frontend
-npm install
+npm run dev
 ```
 
 ### Environment variables
